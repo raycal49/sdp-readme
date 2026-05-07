@@ -14,7 +14,6 @@ public class WebRTCSender : MonoBehaviour
     [SerializeField] private PeerConnectionManager peerConnectionManager;
     [SerializeField] private AnnotationManager annotationManager;
     [SerializeField] private DocumentManager documentManager;
-    [SerializeField] private DocumentNavigationChannel documentNavigationChannel;
     [SerializeField] private MicrophoneCapture microphoneCapture;
 
     [Header("Call Button UI")]
@@ -216,23 +215,6 @@ public class WebRTCSender : MonoBehaviour
 
         if (peerConnectionManager.AnnotationChannel != null)
             annotationManager.HandleDataChannel(peerConnectionManager.AnnotationChannel, annotationQueue);
-
-        // if (peerConnectionManager.DocumentsChannel == null)
-        //     Debug.LogError("WebRTCSender: Documents data channel was not created.");
-        // else
-        // {
-        //     Debug.Log("WebRTCSender: Documents data channel is ready.");
-        //     if (documentManager != null)
-        //         documentManager.HandleDataChannel(peerConnectionManager.DocumentsChannel, documentQueue);
-        //     else
-        //         Debug.LogWarning("WebRTCSender: DocumentManager is not assigned.");
-
-        //     if (documentNavigationChannel != null)
-        //         documentNavigationChannel.SetDataChannel(peerConnectionManager.DocumentsChannel);
-        //     else
-        //         Debug.LogWarning("WebRTCSender: DocumentNavigationChannel is not assigned.");
-        // }
-
 
         yield return StartCoroutine(signalingClient.httpClient.GetNegotiateUrl(userId, room));
 

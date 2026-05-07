@@ -50,6 +50,8 @@ export interface AcceptCallDependencies extends LoggingContext {
   iceServersRef: RefLike<IceServerConfig[]>;
   activeRoomRef: RefLike<string | null>;
   onDataChannelOpen?: () => void;
+  onDocumentsChannelOpen?: () => void;
+  onDataChannelMessage?: (msg: unknown) => void;
   intentionalEndRef: React.RefObject<boolean>;
 }
 
@@ -70,6 +72,8 @@ export interface ConnectHookDependencies extends CallContext {
 export interface AcceptCallHookDependencies extends LoggingContext, WebRTCRefs {
   attachStream: (trackEvent: RTCTrackEvent) => void;
   onDataChannelOpen?: () => void;
+  onDocumentsChannelOpen?: () => void;
+  onDataChannelMessage?: (msg: unknown) => void;
   intentionalEndRef: React.RefObject<boolean>;
 }
 
@@ -83,6 +87,8 @@ export interface PeerCallbacksOptions extends LoggingContext {
   signaling: SignalingService | null;
   onFailed: () => void;
   onDataChannelOpen?: () => void;
+  onDocumentsChannelOpen?: () => void;
+  onDataChannelMessage?: (msg: unknown) => void;
   intentionalEndRef?: React.RefObject<boolean>;
 }
 
@@ -91,6 +97,8 @@ export interface UseWebRTCCallbacksDependencies extends Omit<CallContext, 'addLo
   videoRef: React.RefObject<HTMLVideoElement | null>;
   userIdRef: RefLike<string>;
   setDataChannelReady: React.Dispatch<React.SetStateAction<boolean>>;
+  setDocumentsChannelReady: React.Dispatch<React.SetStateAction<boolean>>;
+  setDocumentCurrentPage: React.Dispatch<React.SetStateAction<number | null>>;
   intentionalEndRef: React.RefObject<boolean>;
 }
 
@@ -110,5 +118,6 @@ export interface UseWebRTCReturn {
   disconnect: () => void;
   leaveCall: () => void;
   dataChannelReady: boolean;
+  documentsChannelReady: boolean;
   sendAnnotation: (stroke: AnnotationStroke) => void;
 }

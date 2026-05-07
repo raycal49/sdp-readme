@@ -1,0 +1,1 @@
+H:\Unity Projects\clone_test\sdp-readme\UnityFiles\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\build\intermediates\cxx\RelWithDebInfo\he3hw4a4\obj\arm64-v8a

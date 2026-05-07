@@ -114,3 +114,10 @@ When the Unity/Quest WebRTC client is ready:
 5. Once WebRTC connects, media flows peer-to-peer.
 
 The `signaling-server/` folder contains an alternative, modular server implementation. The deployed server may be Sal's `SignalingServer/` — both support the same client protocol.
+
+
+## SSL Certificate Setup
+Download DigiCertGlobalRootG2.crt.pem from:
+https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
+
+Place it in: SignalingServer/certs/DigiCertGlobalRootG2.crt.pem

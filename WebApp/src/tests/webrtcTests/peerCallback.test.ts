@@ -101,6 +101,16 @@ describe('onStateChange', () => {
     expect(opts.setStatus).not.toHaveBeenCalled();
     expect(opts.onFailed).not.toHaveBeenCalled();
   });
+
+  it('clears the disconnect timer when reconnected', () => {
+    const opts = makePeerCallbackOptions();
+    const { onStateChange } = makePeerCallbacks(opts);
+    onStateChange('disconnected');
+    onStateChange('connected');
+    vi.advanceTimersByTime(5000);
+    expect(opts.onFailed).not.toHaveBeenCalled();
+    expect(opts.setStatus).not.toHaveBeenCalledWith('error');
+  });
 });
 
 describe('onMicError', () => {
@@ -124,5 +134,20 @@ describe('onDataChannelOpen', () => {
     const opts = makePeerCallbackOptions();
     const callbacks = makePeerCallbacks(opts);
     expect(callbacks.onDataChannelOpen).toBeUndefined();
+  });
+});
+
+describe('onDataChannelMessage', () => {
+  it('is passed through when provided in options', () => {
+    const onDataChannelMessage = vi.fn();
+    const opts = makePeerCallbackOptions({ onDataChannelMessage });
+    const callbacks = makePeerCallbacks(opts);
+    expect(callbacks.onDataChannelMessage).toBe(onDataChannelMessage);
+  });
+
+  it('is undefined when not provided in options', () => {
+    const opts = makePeerCallbackOptions();
+    const callbacks = makePeerCallbacks(opts);
+    expect(callbacks.onDataChannelMessage).toBeUndefined();
   });
 });

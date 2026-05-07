@@ -67,19 +67,19 @@ export function useConnect(deps: ConnectHookDependencies) {
 }
 
 export function useAcceptCall(deps: AcceptCallHookDependencies) {
-  const { addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, intentionalEndRef } = deps;
+  const { addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, onDataChannelMessage, intentionalEndRef } = deps;
   return useCallback(
     (room: string) => {
       if (activeRoomRef.current) { addLog('Already in a call'); return; }
       activeRoomRef.current = room;
-      runAcceptCall({ room, addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, intentionalEndRef, 
+      runAcceptCall({ room, addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, onDataChannelMessage, intentionalEndRef,
       }).catch((err: unknown) => {
         addLog(`Accept call failed: ${(err as Error).message}`);
         activeRoomRef.current = null;
         setStatus('error');
       });
     },
-    [addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, intentionalEndRef],
+    [addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, onDataChannelMessage, intentionalEndRef],
   );
 }
 

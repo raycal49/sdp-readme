@@ -21,10 +21,10 @@ export default defineConfig([
     },
     rules: {
       // fails if there is complext code
-      'complexity': ['error', 8],  
+      'complexity': ['error', 5],  
       'max-depth': ['error', 3],     
       'max-lines-per-function': ['error', { 
-        max: 65, 
+        max: 50, 
         skipBlankLines: true, 
         skipComments: true 
       }],
@@ -39,4 +39,5 @@ export default defineConfig([
       'prefer-const': 'error',       
     },
   },
+  
 ])

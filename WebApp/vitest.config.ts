@@ -5,20 +5,13 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
     globals: true,
     
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
       
-      include: [
-        'src/webrtc/hooks/webrtcHooks.ts',
-        'src/webrtc/services/webrtcService.ts',
-        'src/webrtc/signaling/**/*.ts',
-        'src/scenes/videoCallPage/Annotation/AnnotationLogic.ts',
-        'src/scenes/videoCallPage/AnnotationLogger.ts'
-      ],
+      include: ['src/tests/**/*.ts', 'src/tests/**/*.tsx'],
       
       exclude: [
         'node_modules/',

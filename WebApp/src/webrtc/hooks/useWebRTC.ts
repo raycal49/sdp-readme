@@ -15,19 +15,23 @@ export function useWebRTC() {
   const [incomingCalls, setIncomingCalls] = useState<IncomingCall[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [dataChannelReady, setDataChannelReady] = useState(false);
+  const [documentCurrentPage, setDocumentCurrentPage] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const signalingRef = useRef<SignalingService | null>(null);
   const webrtcRef = useRef(new WebRTCService());
   const iceServersRef = useRef<IceServerConfig[]>([]);
   const activeRoomRef = useRef<string | null>(null);
-  const userIdRef = useRef(generateUserId());
+  const [userId] = useState(generateUserId);
+  const userIdRef = useRef(userId);
+  //const userIdRef = useRef(generateUserId());
   const intentionalEndRef = useRef(false);
+  const [documentsChannelReady, setDocumentsChannelReady] = useState(false);
   
 
   const clearLogs = useCallback(() => {
     setLogs([]);
   }, []);
-  const { connect, acceptCall, declineCall, disconnect, leaveCall } = useWebRTCCallbacks({
+  const { connect, acceptCall, declineCall, disconnect, leaveCall, } = useWebRTCCallbacks({
     setStatus,
     setIncomingCalls,
     setLogs,
@@ -38,11 +42,21 @@ export function useWebRTC() {
     activeRoomRef,
     userIdRef,
     setDataChannelReady,
-    intentionalEndRef
+    setDocumentCurrentPage,
+    intentionalEndRef,
+    setDocumentsChannelReady,
   });
 
   const sendAnnotation = useCallback((stroke: AnnotationMessage) => {
     webrtcRef.current.sendAnnotation(stroke);
+  }, []);
+
+  const sendDocument = useCallback((file: File) => {
+    return webrtcRef.current.sendDocument(file);
+  }, []);
+
+  const sendDocumentClose = useCallback(() => {
+    webrtcRef.current.sendDocumentClose();
   }, []);
 
   useEffect(() => {
@@ -72,8 +86,15 @@ export function useWebRTC() {
     };
   }, []);
 
-  return { 
-    status, incomingCalls, logs, videoRef, 
-    connect, acceptCall, declineCall, disconnect, 
-    leaveCall, dataChannelReady, sendAnnotation, clearLogs};
+//   return { 
+//     status, incomingCalls, logs, videoRef, 
+//     connect, acceptCall, declineCall, disconnect, 
+//     leaveCall, dataChannelReady, sendAnnotation, clearLogs,
+//     userId};
+  return {
+    status, incomingCalls, logs, videoRef,
+    connect, acceptCall, declineCall, disconnect,
+    leaveCall, dataChannelReady,documentsChannelReady, sendAnnotation,
+    sendDocument, sendDocumentClose, documentCurrentPage,
+    setDocumentCurrentPage, clearLogs, userId};
 }

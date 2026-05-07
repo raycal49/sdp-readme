@@ -13,6 +13,7 @@ function MainPage() {
         leaveCall, drawingEnabled, videoVisible, strokeType,
         strokeColor, handleToggleDrawing, handleToggleStrokeType,
         handleClearAnnotations, handleStroke, handleColorChange,
+        documentEnabled, documentSending, handleSendDocument,
         } = useVideoCallState();
 
   const isStreaming = status === 'streaming';
@@ -51,6 +52,10 @@ function MainPage() {
                 onClearAnnotations={handleClearAnnotations}
                 onEndCall={leaveCall}
                 videoRef={videoRef}
+                documentEnabled={documentEnabled}
+                documentSending={documentSending}
+                onSendDocument={handleSendDocument}
+                // documentOpen / onCloseDocument intentionally omitted — Quest controls dismissal
               />
             </Box>
 

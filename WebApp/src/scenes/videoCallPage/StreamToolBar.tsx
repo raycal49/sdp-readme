@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
@@ -7,6 +8,8 @@ import PhoneDisabledIcon from '@mui/icons-material/PhoneDisabled';
 import TimerOffIcon from '@mui/icons-material/TimerOff';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+// import CloseIcon from '@mui/icons-material/Close'; // for the close-doc button (currently disabled)
 import type { StrokeType } from './Annotation/AnnotationLogic.ts';
 import { useState, useRef, useEffect } from 'react';
 import { VolumeControl } from './VolumeControl/VolumeControl.tsx';
@@ -93,13 +96,77 @@ interface StreamToolbarProps {
   visible: boolean;
   drawingEnabled: boolean;
   strokeType: StrokeType;
-  strokeColor: string; 
+  strokeColor: string;
   onToggleDrawing: () => void;
   onToggleStrokeType: () => void;
   onColorChange: (color: string) => void;
   onClearAnnotations: () => void;
   onEndCall: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  documentEnabled: boolean;
+  documentSending: boolean;
+  onSendDocument: (file: File) => void;
+  // Quest controls when to close the doc panel; expert-side close button intentionally omitted.
+  // documentOpen: boolean;
+  // onCloseDocument: () => void;
+}
+
+function DocumentControls({ documentEnabled, documentSending, onSendDocument }: {
+  documentEnabled: boolean;
+  documentSending: boolean;
+  onSendDocument: (file: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const sendDisabled = !documentEnabled || documentSending;
+
+  const handleClick = () => inputRef.current?.click();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onSendDocument(file);
+    e.target.value = '';
+  };
+
+  return (
+    <>
+      <Tooltip title={documentSending ? 'Sending document…' : 'Send PDF to Quest'} placement="left">
+        <span>
+          <IconButton
+            onClick={handleClick}
+            disabled={sendDisabled}
+            sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
+          >
+            {documentSending
+              ? <CircularProgress size={18} thickness={5} />
+              : <PictureAsPdfIcon fontSize="small" />}
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      {/* Close-on-Quest button removed — Quest user dismisses the doc locally.
+          Restore by uncommenting the documentOpen / onCloseDocument props above and:
+        <Tooltip title="Close document on Quest" placement="left">
+          <span>
+            <IconButton
+              onClick={onCloseDocument}
+              disabled={!documentOpen}
+              sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'error.main' } }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      */}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        onChange={handleChange}
+        style={{ display: 'none' }}
+      />
+    </>
+  );
 }
 
 function DrawToggleButton({ drawingEnabled, onToggleDrawing }: {
@@ -146,28 +213,37 @@ function StrokeTypeButton({ drawingEnabled, strokeType, onToggleStrokeType }: {
 export default function StreamToolbar({
   visible, drawingEnabled, strokeType, strokeColor, onColorChange,
   onToggleDrawing, onToggleStrokeType, onClearAnnotations, onEndCall, videoRef,
+  documentEnabled, documentSending, onSendDocument,
 }: StreamToolbarProps) {
   const { volume, muted, handleVolumeChange, handleToggleMute } = useVolumeControl(videoRef);
   if (!visible) return null;
- 
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                py: 2, px: 0.5, bgcolor: 'background.paper', borderLeft: 1, borderColor: 'divider', width: 48 }}>
- 
+
       <DrawToggleButton drawingEnabled={drawingEnabled} onToggleDrawing={onToggleDrawing} />
- 
+
       <StrokeTypeButton drawingEnabled={drawingEnabled} strokeType={strokeType} onToggleStrokeType={onToggleStrokeType} />
       <ColorPickerButton drawingEnabled={drawingEnabled} strokeColor={strokeColor} onColorChange={onColorChange}/>
- 
+
       <Divider flexItem sx={{ borderColor: 'divider' }} />
- 
+
       <Tooltip title="Clear all annotations" placement="left">
         <IconButton onClick={onClearAnnotations}
           sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'error.main' } }}>
           <DeleteSweepIcon fontSize="small" />
         </IconButton>
       </Tooltip>
- 
+
+      <Divider flexItem sx={{ borderColor: 'divider' }} />
+
+      <DocumentControls
+        documentEnabled={documentEnabled}
+        documentSending={documentSending}
+        onSendDocument={onSendDocument}
+      />
+
       <Divider flexItem sx={{ borderColor: 'divider' }} />
 
       <VolumeControl
@@ -178,7 +254,7 @@ export default function StreamToolbar({
       />
 
       <Divider flexItem sx={{ borderColor: 'divider' }} />
- 
+
       <Tooltip title="End Call" placement="left">
         <IconButton onClick={onEndCall}
           sx={{ bgcolor: 'error.main', color: 'error.contrastText', '&:hover': { bgcolor: 'error.dark' } }}>

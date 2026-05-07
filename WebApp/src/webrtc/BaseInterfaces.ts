@@ -28,6 +28,38 @@ export interface ClearAnnotations {
 
 export type AnnotationMessage = AnnotationStroke | ClearAnnotations;
 
+export interface DocumentStartMessage {
+  Type: 'document-start';
+  DocumentName: string;
+  TotalPages: number;
+}
+
+export interface DocumentPageMessage {
+  Type: 'document-page';
+  PageIndex: number;
+  TotalPages: number;
+  Width: number;
+  Height: number;
+  ChunkIndex: number;
+  TotalChunks: number;
+  Data: string;
+}
+
+export interface DocumentCloseMessage {
+  Type: 'document-close';
+}
+
+export interface DocumentNavigateMessage {
+  Type: 'document-navigate';
+  PageIndex: number;
+}
+
+export type DocumentMessage =
+  | DocumentStartMessage
+  | DocumentPageMessage
+  | DocumentCloseMessage
+  | DocumentNavigateMessage;
+
 export interface IceServerConfig {
   urls: string | string[];
   username?: string;
@@ -38,7 +70,9 @@ export interface PeerCallbacks {
   onTrack: (event: RTCTrackEvent) => void;
   onIceCandidate: (candidate: RTCIceCandidate) => void;
   onStateChange: (state: RTCIceConnectionState) => void;
-  onDataChannelOpen?: () => void
+  onDataChannelOpen?: () => void;
+  onDocumentsChannelOpen?: () => void;
+  onDataChannelMessage?: (msg: unknown) => void;
   onMicError?: (err: Error) => void;
 }
 

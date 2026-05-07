@@ -2,24 +2,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WebRTCService } from '../../webrtc/services/webrtcService';
 import type { AnnotationStroke } from '../../webrtc/BaseInterfaces';
 
+vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({ default: 'mock-worker-url' }));
+
+const pdfjsMock = {
+  GlobalWorkerOptions: { workerSrc: '' },
+  getDocument: vi.fn(),
+};
+vi.mock('pdfjs-dist', () => pdfjsMock);
+
 type MockDataChannel = {
   label: string;
   readyState: RTCDataChannelState;
   onopen: (() => void) | null;
+  onmessage: ((e: { data: unknown }) => void) | null;
   send: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
 };
 
 function makeDataChannel(label: string, readyState: RTCDataChannelState = 'open'): MockDataChannel {
-  return { label, readyState, onopen: null, send: vi.fn(), close: vi.fn() };
+  return { label, readyState, onopen: null, onmessage: null, send: vi.fn(), close: vi.fn() };
 }
 
 class MockPeerConnection {
   ontrack: ((e: RTCTrackEvent) => void) | null = null;
   onicecandidate: ((e: { candidate: RTCIceCandidate | null }) => void) | null = null;
   oniceconnectionstatechange: (() => void) | null = null;
+  onicegatheringstatechange: (() => void) | null = null;
   ondatachannel: ((e: { channel: MockDataChannel }) => void) | null = null;
   iceConnectionState: RTCIceConnectionState = 'new';
+  iceGatheringState: RTCIceGatheringState = 'new';
   remoteDescription: RTCSessionDescription | null = null;
 
   close = vi.fn();
@@ -43,7 +54,7 @@ beforeEach(() => {
   }));
 });
 
-function makeCallbacks(extra: { onDataChannelOpen?: () => void } = {}) {
+function makeCallbacks(extra: { onDataChannelOpen?: () => void; onDataChannelMessage?: (msg: unknown) => void } = {}) {
   return {
     onTrack: vi.fn(),
     onIceCandidate: vi.fn(),
@@ -136,6 +147,15 @@ describe('create', () => {
     handler();
 
     expect(cbs.onStateChange).not.toHaveBeenCalled();
+  });
+
+  it('logs ICE gathering state changes', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    mockPc.iceGatheringState = 'gathering';
+    mockPc.onicegatheringstatechange!();
+    // The console.log is called, but we can't easily test console output in vitest without mocking
+    // This test ensures the callback is wired and doesn't throw
   });
 });
 
@@ -245,7 +265,7 @@ describe('cleanup', () => {
   });
 });
 
-describe('data channel', () => {
+describe('data channel: wiring', () => {
   it('registers an ondatachannel handler on the peer connection', () => {
     const svc = new WebRTCService();
     svc.create(iceServers, makeCallbacks());
@@ -283,6 +303,53 @@ describe('data channel', () => {
     const channel = makeDataChannel('annotations');
     mockPc.ondatachannel!({ channel });
     expect(() => channel.onopen!()).not.toThrow();
+  });
+});
+
+describe('data channel: messages', () => {
+  it('parses incoming string payloads and forwards them to onDataChannelMessage', () => {
+    const onDataChannelMessage = vi.fn();
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks({ onDataChannelMessage }));
+
+    const channel = makeDataChannel('annotations');
+    mockPc.ondatachannel!({ channel });
+
+    channel.onmessage!({ data: JSON.stringify({ Type: 'document-navigate', PageIndex: 4 }) });
+    expect(onDataChannelMessage).toHaveBeenCalledWith({ Type: 'document-navigate', PageIndex: 4 });
+  });
+
+  it('ignores non-string data on the data channel', () => {
+    const onDataChannelMessage = vi.fn();
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks({ onDataChannelMessage }));
+
+    const channel = makeDataChannel('annotations');
+    mockPc.ondatachannel!({ channel });
+
+    channel.onmessage!({ data: new ArrayBuffer(8) });
+    expect(onDataChannelMessage).not.toHaveBeenCalled();
+  });
+
+  it('swallows malformed JSON without throwing', () => {
+    const onDataChannelMessage = vi.fn();
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks({ onDataChannelMessage }));
+
+    const channel = makeDataChannel('annotations');
+    mockPc.ondatachannel!({ channel });
+
+    expect(() => channel.onmessage!({ data: '{not json' })).not.toThrow();
+    expect(onDataChannelMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when onDataChannelMessage is absent', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+
+    const channel = makeDataChannel('annotations');
+    mockPc.ondatachannel!({ channel });
+    expect(() => channel.onmessage!({ data: JSON.stringify({ Type: 'document-navigate', PageIndex: 0 }) })).not.toThrow();
   });
 });
 
@@ -373,5 +440,134 @@ describe('create with localStream', () => {
     await svc.initMic();
     svc.create(iceServers, makeCallbacks());
     expect(mockPc.addTrack).toHaveBeenCalledWith(fakeTrack, fakeStream);
+  });
+});
+
+describe('isDataChannelOpen', () => {
+  it('returns false before a channel is assigned', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    expect(svc.isDataChannelOpen()).toBe(false);
+  });
+
+  it('returns true when the assigned channel is open', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    mockPc.ondatachannel!({ channel: makeDataChannel('annotations', 'open') });
+    expect(svc.isDataChannelOpen()).toBe(true);
+  });
+
+  it('returns false when the assigned channel is connecting', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    mockPc.ondatachannel!({ channel: makeDataChannel('annotations', 'connecting') });
+    expect(svc.isDataChannelOpen()).toBe(false);
+  });
+});
+
+describe('sendDocumentClose', () => {
+  it('sends a document-close JSON when the channel is open', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    const channel = makeDataChannel('annotations', 'open');
+    mockPc.ondatachannel!({ channel });
+
+    svc.sendDocumentClose();
+
+    expect(channel.send).toHaveBeenCalledWith(JSON.stringify({ Type: 'document-close' }));
+  });
+
+  it('does nothing when the channel is not open', () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    const channel = makeDataChannel('annotations', 'connecting');
+    mockPc.ondatachannel!({ channel });
+
+    svc.sendDocumentClose();
+
+    expect(channel.send).not.toHaveBeenCalled();
+  });
+});
+
+describe('sendDocument', () => {
+  function fakePdfPage() {
+    return {
+      getViewport: vi.fn().mockReturnValue({ width: 8, height: 8 }),
+      render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+      cleanup: vi.fn(),
+    };
+  }
+
+  function fakeFile(): File {
+    const buffer = new ArrayBuffer(4);
+    return {
+      name: 'manual.pdf',
+      type: 'application/pdf',
+      arrayBuffer: () => Promise.resolve(buffer),
+    } as unknown as File;
+  }
+
+  beforeEach(() => {
+    pdfjsMock.GlobalWorkerOptions.workerSrc = '';
+    pdfjsMock.getDocument = vi.fn().mockReturnValue({
+      promise: Promise.resolve({
+        numPages: 1,
+        getPage: vi.fn().mockResolvedValue(fakePdfPage()),
+      }),
+    });
+
+    const dataUrl = 'data:image/jpeg;base64,YWJj';
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({}) as unknown as HTMLCanvasElement['getContext'];
+    HTMLCanvasElement.prototype.toDataURL = vi.fn().mockReturnValue(dataUrl);
+  });
+
+  it('returns immediately when the data channel is not open', async () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    const channel = makeDataChannel('annotations', 'connecting');
+    mockPc.ondatachannel!({ channel });
+
+    await svc.sendDocument(fakeFile());
+
+    expect(pdfjsMock.getDocument).not.toHaveBeenCalled();
+    expect(channel.send).not.toHaveBeenCalled();
+  });
+
+  it('emits a document-start frame followed by document-page chunks', async () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    const channel = makeDataChannel('annotations', 'open');
+    mockPc.ondatachannel!({ channel });
+
+    await svc.sendDocument(fakeFile());
+
+    const payloads = channel.send.mock.calls.map(([body]: [string]) => JSON.parse(body));
+    expect(payloads[0]).toEqual({ Type: 'document-start', DocumentName: 'manual.pdf', TotalPages: 1 });
+    expect(payloads.slice(1).every(p => p.Type === 'document-page' && p.PageIndex === 0)).toBe(true);
+    expect(payloads.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('waits for buffer when bufferedAmount is high', async () => {
+    const svc = new WebRTCService();
+    svc.create(iceServers, makeCallbacks());
+    const channel = makeDataChannel('annotations', 'open');
+    
+    // Mock high bufferedAmount to trigger waitForBuffer (DOC_BUFFER_HIGH_WATER = 1MB)
+    let bufferedAmount = 2 * 1024 * 1024; // Start high
+    const getter = () => bufferedAmount;
+    const setter = (value: number) => { bufferedAmount = value; };
+    Object.defineProperty(channel, 'bufferedAmount', { get: getter, set: setter });
+    
+    mockPc.ondatachannel!({ channel });
+
+    // Simulate bufferedAmount decreasing after a short delay
+    setTimeout(() => {
+      bufferedAmount = 0; // Drop below threshold
+    }, 50);
+
+    await svc.sendDocument(fakeFile());
+
+    // The test passes if no timeout occurs, meaning waitForBuffer worked
+    expect(channel.send).toHaveBeenCalled();
   });
 });

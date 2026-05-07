@@ -4,7 +4,7 @@ import type { AcceptCallDependencies, ConnectDependencies } from '../ExtendedInt
 import type {IncomingCall} from '../BaseInterfaces.ts';
 
 const SIGNALING_SERVER_URL = import.meta.env.VITE_SIGNALING_SERVER_URL ?? 'https://ar-signalingserver.azurewebsites.net';
-const JOIN_NOTIFY_DELAY_MS = 50;
+const JOIN_NOTIFY_DELAY_MS = 500;
 
 export function mergeIncomingCalls(
   previousCalls: IncomingCall[],
@@ -50,7 +50,7 @@ export async function runConnect(ConnectDependencies: ConnectDependencies): Prom
 }
 
 export async function runAcceptCall(AcceptCallDependencies: AcceptCallDependencies): Promise<void> {
-  const { room, addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, intentionalEndRef } = AcceptCallDependencies;
+  const { room, addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, onDataChannelMessage, intentionalEndRef } = AcceptCallDependencies;
   if (intentionalEndRef) intentionalEndRef.current = false;
   try {
     const freshIceServers = await signalingRef.current?.fetchIceConfig();
@@ -66,7 +66,7 @@ export async function runAcceptCall(AcceptCallDependencies: AcceptCallDependenci
     room, addLog, setStatus, attachStream,
     signaling: signalingRef.current,
     onFailed: () => {activeRoomRef.current = null},
-    onDataChannelOpen, intentionalEndRef,
+    onDataChannelOpen, onDataChannelMessage, intentionalEndRef,
   });
   webrtcRef.current.create(iceServersRef.current, peerCallbacks);
   signalingRef.current?.joinGroup(room);

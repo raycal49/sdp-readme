@@ -49,6 +49,10 @@ class AnnotationLogger {
     this.addLog('annotation', 'Clearing all annotations');
   }
 
+  getCurrentCallId(): string | null {
+    return this.currentCallId;
+  }
+
   // Add WebRTC logs
   logWebRTCEvent(data: WebRTCLogData): void {
     const message = this.formatWebRTCMessage(data);

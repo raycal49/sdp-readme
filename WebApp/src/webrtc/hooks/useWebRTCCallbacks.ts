@@ -9,7 +9,7 @@ import {
 export function useWebRTCCallbacks(dependencies: UseWebRTCCallbacksDependencies) {
   const {
     setStatus, setIncomingCalls, setLogs, videoRef,
-    signalingRef, webrtcRef, iceServersRef, activeRoomRef, userIdRef, setDataChannelReady, intentionalEndRef
+    signalingRef, webrtcRef, iceServersRef, activeRoomRef, userIdRef, setDataChannelReady, setDocumentCurrentPage, intentionalEndRef
   } = dependencies;
 
   const addLog = useAddLog(setLogs);
@@ -21,8 +21,17 @@ export function useWebRTCCallbacks(dependencies: UseWebRTCCallbacksDependencies)
     setDataChannelReady(true);
   }, [addLog, setDataChannelReady]);
 
+  const onDataChannelMessage = useCallback((msg: unknown) => {
+    if (typeof msg !== 'object' || msg === null) return;
+    const m = msg as { Type?: unknown; PageIndex?: unknown };
+    if (m.Type === 'document-navigate' && typeof m.PageIndex === 'number') {
+      setDocumentCurrentPage(m.PageIndex);
+      addLog(`Doc nav: page ${m.PageIndex + 1}`);
+    }
+  }, [addLog, setDocumentCurrentPage]);
+
   const connect = useConnect({ addLog, setStatus, setIncomingCalls, handleMessage, userIdRef, signalingRef, iceServersRef, activeRoomRef, webrtcRef, intentionalEndRef });
-  const acceptCall = useAcceptCall({ addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, intentionalEndRef });
+  const acceptCall = useAcceptCall({ addLog, setStatus, attachStream, signalingRef, webrtcRef, iceServersRef, activeRoomRef, onDataChannelOpen, onDataChannelMessage, intentionalEndRef });
   const declineCall = useDeclineCall(addLog, setIncomingCalls, signalingRef);
   const disconnect = useDisconnect({ addLog, setStatus, setIncomingCalls, signalingRef, webrtcRef, activeRoomRef, setDataChannelReady });
   const leaveCall = useLeaveCall({ addLog, setStatus, setIncomingCalls, signalingRef, webrtcRef, activeRoomRef, setDataChannelReady });

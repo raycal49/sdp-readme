@@ -1,3 +1,4 @@
+// UseAnnotationLogger.tsx - keep core logging here (stays under 65 lines)
 import { useState, useCallback } from 'react';
 import { annotationLogger } from './AnnotationLogger';
 import type { AnnotationLogData, WebRTCLogData, LogEntry } from './AnnotationLogger';
@@ -49,45 +50,9 @@ export function useAnnotationLogger() {
     refreshLogs();
   }, [refreshLogs]);
 
-  const exportLogs = useCallback(() => {
-    const json = annotationLogger.exportToJSON();
-    downloadJSON(json, `call-logs-${Date.now()}.json`);
-  }, []);
-
-  const exportCategoryLogs = useCallback((category: LogEntry['category']) => {
-    const json = annotationLogger.exportByCategoryToJSON(category);
-    downloadJSON(json, `call-logs-${category}-${Date.now()}.json`);
-  }, []);
-
-  const exportAnnotations = useCallback((webAppUserId?: string | number, questUserId?: string | number) => {
-    const json = annotationLogger.exportAnnotationsToJSON(webAppUserId, questUserId);
-    downloadJSON(json, `annotations-${Date.now()}.json`);
-  }, []);
-
   return {
-    logs,
-    logAnnotationSent,
-    logAnnotationCleared,
-    logWebRTC,
-    logConnection,
-    logSystem,
-    clearLogs,
-    exportLogs,
-    exportCategoryLogs,
-    exportAnnotations,
-    refreshLogs,
-    startNewCall,
-    endCall
+    logs, refreshLogs, startNewCall, endCall,
+    logAnnotationSent, logAnnotationCleared,
+    logWebRTC, logConnection, logSystem, clearLogs,
   };
-}
-
-// Helper function outside hook (not using React hooks)
-function downloadJSON(json: string, filename: string): void {
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }

@@ -1,1 +1,0 @@
-# sdp26-readme
