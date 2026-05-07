@@ -61,6 +61,7 @@ public class ManualViewer : MonoBehaviour
         _documents.Add(doc);
         SpawnDocumentButton(doc);
         UpdateClearButtonState();
+        Debug.Log($"[ManualViewer] AddDocument '{docName}' pages={(pages != null ? pages.Length : 0)} totalDocs={_documents.Count} clearInteractable={(clearAllButton != null && clearAllButton.interactable)}");
     }
 
     public void ClearAllDocuments()
@@ -92,7 +93,12 @@ public class ManualViewer : MonoBehaviour
 
     private void OnClearAllClicked()
     {
-        if (confirmPanel == null) return;
+        Debug.Log($"[ManualViewer] OnClearAllClicked. confirmPanel={(confirmPanel != null)} interactable={(clearAllButton != null && clearAllButton.interactable)} docs={_documents.Count}");
+        if (confirmPanel == null)
+        {
+            Debug.LogWarning("[ManualViewer] confirmPanel is null — cannot show confirm dialog.");
+            return;
+        }
         BringConfirmPanelToFront();
         confirmPanel.SetActive(true);
     }
