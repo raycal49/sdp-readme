@@ -92,7 +92,9 @@ public class ManualViewer : MonoBehaviour
 
     private void OnClearAllClicked()
     {
-        if (confirmPanel != null) confirmPanel.SetActive(true);
+        if (confirmPanel == null) return;
+        BringConfirmPanelToFront();
+        confirmPanel.SetActive(true);
     }
 
     private void OnConfirmNoClicked()
@@ -113,6 +115,27 @@ public class ManualViewer : MonoBehaviour
         if (listContent == null) return;
         for (int i = listContent.childCount - 1; i >= 0; i--)
             Destroy(listContent.GetChild(i).gameObject);
+    }
+
+    // Ensures ConfirmPanel renders above its siblings in the list canvas,
+    // and on its own world-space canvas if it has one (raised sortingOrder),
+    // and is nudged forward in local Z so it can't z-fight the list in VR.
+    private void BringConfirmPanelToFront()
+    {
+        if (confirmPanel == null) return;
+
+        confirmPanel.transform.SetAsLastSibling();
+
+        var local = confirmPanel.transform.localPosition;
+        if (local.z >= 0f) local.z = -0.005f;
+        confirmPanel.transform.localPosition = local;
+
+        var canvas = confirmPanel.GetComponent<Canvas>();
+        if (canvas != null)
+        {
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 1000;
+        }
     }
 
     private void UpdateClearButtonState()
