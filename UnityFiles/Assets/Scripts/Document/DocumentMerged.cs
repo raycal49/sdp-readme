@@ -94,7 +94,19 @@ public class DocumentManualViewerBridge : MonoBehaviour
 
     private void HandleDocumentClose(DocumentCloseMessage _)
     {
-        // Reset buffer; don't register an incomplete document.
+        ClearBuffer();
+    }
+
+    public void ClearBuffer()
+    {
+        if (_pageBuffer != null)
+        {
+            for (int i = 0; i < _pageBuffer.Length; i++)
+            {
+                if (_pageBuffer[i] != null) Destroy(_pageBuffer[i]);
+                _pageBuffer[i] = null;
+            }
+        }
         _pageBuffer = null;
         _receivedPageCount = 0;
         _pendingDocumentName = null;

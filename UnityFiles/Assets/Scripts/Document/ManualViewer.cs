@@ -12,6 +12,14 @@ public class ManualViewer : MonoBehaviour
     [SerializeField] private GameObject viewerPanel;
     [SerializeField] private Transform listContent;
     [SerializeField] private GameObject docButtonPrefab;
+    [SerializeField] private Button clearAllButton;
+    [SerializeField] private GameObject confirmPanel;
+    [SerializeField] private Button confirmYesButton;
+    [SerializeField] private Button confirmNoButton;
+
+    [Header("Cache reset wiring")]
+    [SerializeField] private DocumentManualViewerBridge bridge;
+    [SerializeField] private DocumentManager documentManager;
 
     [Header("Viewer")]
     [SerializeField] private RawImage pageDisplay;
@@ -39,6 +47,12 @@ public class ManualViewer : MonoBehaviour
         nextButton.onClick.AddListener(NextPage);
         closeViewerButton.onClick.AddListener(CloseViewer);
         closeListButton.onClick.AddListener(CloseList);
+
+        if (clearAllButton != null) clearAllButton.onClick.AddListener(OnClearAllClicked);
+        if (confirmYesButton != null) confirmYesButton.onClick.AddListener(OnConfirmYesClicked);
+        if (confirmNoButton != null) confirmNoButton.onClick.AddListener(OnConfirmNoClicked);
+        if (confirmPanel != null) confirmPanel.SetActive(false);
+        UpdateClearButtonState();
     }
 
     public void AddDocument(string docName, Texture2D[] pages)
@@ -46,6 +60,65 @@ public class ManualViewer : MonoBehaviour
         var doc = new ManualDocument { name = docName, pages = pages };
         _documents.Add(doc);
         SpawnDocumentButton(doc);
+        UpdateClearButtonState();
+    }
+
+    public void ClearAllDocuments()
+    {
+        if (viewerPanel != null && viewerPanel.activeSelf)
+            CloseViewer();
+
+        if (pageDisplay != null)
+            pageDisplay.texture = null;
+
+        _currentDoc = null;
+        _currentPage = 0;
+
+        foreach (var doc in _documents)
+        {
+            if (doc?.pages == null) continue;
+            for (int i = 0; i < doc.pages.Length; i++)
+            {
+                if (doc.pages[i] != null) Destroy(doc.pages[i]);
+                doc.pages[i] = null;
+            }
+            doc.pages = null;
+        }
+        _documents.Clear();
+
+        DestroyListContentChildren();
+        UpdateClearButtonState();
+    }
+
+    private void OnClearAllClicked()
+    {
+        if (confirmPanel != null) confirmPanel.SetActive(true);
+    }
+
+    private void OnConfirmNoClicked()
+    {
+        if (confirmPanel != null) confirmPanel.SetActive(false);
+    }
+
+    private void OnConfirmYesClicked()
+    {
+        ClearAllDocuments();
+        if (bridge != null) bridge.ClearBuffer();
+        if (documentManager != null) documentManager.ClearAssemblies();
+        if (confirmPanel != null) confirmPanel.SetActive(false);
+    }
+
+    private void DestroyListContentChildren()
+    {
+        if (listContent == null) return;
+        for (int i = listContent.childCount - 1; i >= 0; i--)
+            Destroy(listContent.GetChild(i).gameObject);
+    }
+
+    private void UpdateClearButtonState()
+    {
+        if (clearAllButton != null)
+            clearAllButton.interactable = _documents.Count > 0;
     }
 
     private void EnsureListLayout()

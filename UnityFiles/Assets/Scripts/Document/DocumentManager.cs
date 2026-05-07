@@ -126,7 +126,7 @@ public class DocumentManager : MonoBehaviour
         _sessionState.TotalPages = Mathf.Max(0, message.totalPages);
         _sessionState.CurrentPageIndex = _sessionState.TotalPages > 0 ? 0 : -1;
 
-        ClearAssembliesForCurrentDocument();
+        ClearAssemblies();
         OnPageIndexChanged?.Invoke(_sessionState.CurrentPageIndex, _sessionState.TotalPages);
         OnDocumentStart?.Invoke();
     }
@@ -197,11 +197,11 @@ public class DocumentManager : MonoBehaviour
     private void HandleDocumentClose(DocumentCloseMessage message)
     {
         ResetDocumentState();
-        ClearAssembliesForCurrentDocument();
+        ClearAssemblies();
         OnDocumentClose?.Invoke(message);
     }
 
-    private void ClearAssembliesForCurrentDocument()
+    public void ClearAssemblies()
     {
         _pageAssemblies.Clear();
     }
